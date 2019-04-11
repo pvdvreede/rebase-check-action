@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -ex
+
+if [[ -n "$GITHUB_SHA" ]]; then
+  my_branch="$GITHUB_SHA"
+fi
+
+[[ -n "$my_branch" ]] || {
+  my_branch=$(git branch | grep \* | cut -d ' ' -f2)
+}
+
+[[ "$my_branch" != "master" ]] || {
+  echo "On master"
+  exit 78 # see https://developer.github.com/actions/creating-github-actions/accessing-the-runtime-environment/#exit-codes-and-statuses
+}
+
+hash1=$(git show-ref --heads -s master)
+hash2=$(git merge-base master "$my_branch")
+
+[[ "${hash1}" == "${hash2}" ]] && echo "Branch fully rebased" || {
+  echo "Rebase is required!"
+  exit 1
+}
